@@ -1,0 +1,123 @@
+8/29
+
+OCaml review:
+      let add (x,y) = x+y;;
+      	  int * int -> int
+      let add x y = x+y;;
+      	  int -> int -> int
+	      (add 1) returns a funtion that adds 1 to a number
+      let twice g x = g (g x);;
+      	  ('a -> 'a) -> 'a -> 'a
+      remember lists separated by semicolon [1,2,3] != [1;2;3]
+      remember "rec" modifier to allow for recursion
+      "_" replaces an unused part in a pattern match
+      "function" like "fun" but automatically takes argument and pattern match
+      Records:
+	type course = {title:string; num:int}
+	let x = {title="blah"; num=1234}
+	x.num;; --> dot notation
+	{x with num=431} --> can be used to set defaults
+	by default, records are immutable
+	   this can be changed as shown:
+	   	type course = {title:"blah"; mutable int:1234}
+	   then:
+		x.num <- 430;;
+      	Example:
+	   	type course = {title:"blah"; mutable int:1234}
+		let x = {title="blah"; num=1234}     
+		Let w = {x with title="meh"}
+		x.num <- 433
+		What HAPPENS?
+
+      References "ref":
+      		 let x = ref 1;;
+		     basically let x = {mutable contents=1}
+      Shadowing:
+	reusing a variable name causes a previous definition to be overwritten
+
+      Type annotation (add a :TYPE after a variable to restrict its type)
+      Nominal typing -> types distinguished by name, REGARDLESS of content
+      
+      Arrays:
+	let x = [|4;2;3|]
+	x.(0) <- 1
+	MUTABLE!!
+      Strings:
+	Essentially arrays (which means theyre mutable)
+
+      OCAML:
+	Tuples
+	Lists
+	Records
+	Arrays
+	User-defined Data types (trees)
+
+      Ruby:
+        Array
+	Hash (not built into OCaml -> interesting
+	
+      '_a -> this type implies that a mutable value of anuy type can be used, 
+      	  but once it is it must remain of that type
+
+8/31
+
+   Syntax (language structure) vs. semantics (actual meaning)
+   list.assoc will be helpful for project list of vars
+   OCaml option type: Some vs. None (essentially NULL for OCaml)
+   Project 1: for bvec, higher order bits to the right
+   	      make sure to compile projects, not run them top level
+   OCaml Review cont.:
+      let f ~x ~y = x-y (named arguments to function)
+         we can do:
+	    f 4 3;;
+	    f ~y:4 ~x:3
+	 (in order to work, you must name all or no variables)
+      
+      Currying:
+         create partial functions (partial application)
+	 let add x y = x+y;;
+	 let g = add 1;; (now we have an add 1 function)
+	 More difficult to replace second argument:
+	    achieved using named arguments
+      
+      Loops:
+	 let rec foo() = foo();; --> never dies because of tail recursion
+	 while true do () done;; --> internally turned into let rec w/ tail rec
+	 there also exists a for loop implementation
+      
+      Modules:
+         module type BLAH = 
+	    sig
+	      type blah
+	      val hmm : blah -> int
+	 end;;
+	 
+	 Note: the two semicolons and the next part are largely unnecessary for
+	       compiled OCaml
+
+	 module Blah : BLAH = 
+	    struct
+	       let hmm b = 0;;
+	    end
+
+	 consider the module Set (also consider module Hash_tbl)
+	    functr is a function that takes modules and gives you new modules
+
+	 Polymorphic Variants: 
+	    [`On; `Off];;
+	    [> `Off | `On] --> list of eith Off or On
+	    `Number 1;;
+	    let f x = match x with
+	    [< `Number of int | `On | `Off]
+	    `On -> 1
+	    | `Off -> 0
+	    | `Number n -> n;;
+
+	    You could do something like:
+	       `Number;; (You could do this with an explicitly defined type)
+	    [> --> this means it has at LEAST the following types
+	    [< --> this means it has at MOST the following types
+	    Tradeoff: flexibility vs. compile-time check
+	    Useful for stuff like:
+	       f takes `A, `B, and `C
+	       g takes `B, `C, and `D

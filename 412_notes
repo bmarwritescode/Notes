@@ -1,3 +1,48 @@
+8/29 (Discussion)
+
+int * const blah --> the pointer cannot be changed
+const int *blah  --> the pointer is to a const int
+
+consider:
+	arr = {1,2,3,4,5}
+	a = arr
+	c = a
+	
+	++*a;        --> dereferences a and then increments that value
+	*a++         --> dereferences a and then increments the pointer
+	*c = (*a)++; --> adds dereferenced c and a, then increments a 
+
+For macros, consider this:
+    #define MULT(a,b) (a * b)
+    	    --> This does NOT work with MULT(1+2,3+4) OOP
+Try instead:
+    #define MULT(a,b) ((a) * (b))
+
+gcc -D SAMPLE --> defines the given macro SAMPLE
+
+gcc -E --> will show code after preprocessing
+
+8/30 (Lecture)
+
+intro stuff
+
+8/31 (Discussion)
+
+vagrant up --> initialize vm
+vagrant ssh --> get into vm
+cd /vagrant is a shared file (really wherever you run VM from becomes the 
+ vagrant directory)
+ 	 you should run vagrant ssh from the project folder
+vagrant destroy (you might lose local changes WITHIN the vm not in shared dir)
+vagrant halt --> will shutdown VM instance but not remove from disk
+	Both use "vagrant up" to start back up
+You can run GeekOS from both local machine and VM
+
+kassert can be helpful for finding errors
+
+gdb: watch variable tracks variable changes
+     conditional breaks
+
 9/6 (Lecture)
 
 Project 1: Fork and exec
