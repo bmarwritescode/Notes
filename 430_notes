@@ -121,3 +121,144 @@ OCaml review:
 	    Useful for stuff like:
 	       f takes `A, `B, and `C
 	       g takes `B, `C, and `D
+
+9/7
+
+   Project 1:
+      lambda(x).y [replace y --> x]
+         the x from lambda x is meaningless -> similar to:
+	    int foo(int x) {
+	       return x;
+	    }
+	 you can just rename x as z --> essentially alpha conversion
+	 lambda(x).y --> lambda(z).y
+	 therefore [replace y --> x] gives:
+	    lambda(z).x which is essentially the same as lambda(x).x
+	       just less confusing
+      you won't lose any points for extra tests (make many)
+      "open Module" --> don't have to write Module. notation
+         List.assoc;;
+	 open List;;
+	 assoc;;
+      testing sat? --> buggy in "natural ways"
+
+   Parsing:
+      Compiler -> two parts: front end vs. back end
+	 source code-->lexer-->parser-->types-->AST--->...-->machine code
+	 [-------------Front End------------------][------Back End ------]
+
+	 More research into Front End --> not sure why
+
+         lexer - creates tokens (terminals of language)
+	    terminals:
+	       identifier, integer
+	       ex:
+	          type expt = 
+		     EFalse
+		  |  False
+	       type, =, | --> 
+	       EFalse, False --> identifiers
+	    uses regular expressions
+	 parser - 
+	    uses Context Free Grammars
+
+	 Why this difference?
+	    Regexp is really fast (so it's done first)
+	       might be able to catch basic syntax mistakes/errors
+
+	 Abstract Syntax Tree vs. Parse Tree:
+	    Parse Tree is very similar but has more fluff (parentheses)
+	    consider:
+	       a ^ b v c vs. (a ^ b) v c vs. a ^ (b v c)
+	    AST don't need this because it is clear from the structure of the
+	       tree 
+
+      Parsing Algorithms:
+         General purpose algorithms: CYK and Earley (generally considered impractical)
+	 they can deal with any CFG (yay) but slow
+	 More practical algorithms:
+	    LL(k): (ANTLR)
+	       top-down parser
+	          parses from top of parse tree to bottom
+	       left-to-right
+	       left-most-derivation
+	          Always looks at left-most non-terminal to reduce first
+	    Consider:
+	       S -> AA
+	       A -> a
+	    Derivation - start from first symbol all the way to a string
+	       S -> AA -> aA -> aa (left-most)
+	       S -> AA -> Aa -> aa (right-most)
+	    top-down-parser:
+	       parses from S to aa (separates S -> AA -> aa
+	    LR(k): (yacc)
+	       bottum-up parsing
+	          parses from bottom of parse tree
+	       left-to-right
+	       right-most-derivation
+	    yacc: (lexer = lex)
+	       different versions for different languages
+	          bison (for c), ocamlyacc (for ocaml)
+		  tied to lexers: flex and ocamllex respectively
+		  
+      Let's build a parser for arithmetic expressions:
+         E -> E+E | n | (E)
+	    where n is an arbitrary integer
+	    what are tokens? "+", "(", ")", "n"
+	    maybe we want whitespace? (lexer removes whitespace, comments, newlines, etc)
+	 .mll extension for ocamllex
+	 token lexbuf -> can remove unneeded things (whitespace, tabs, etc)
+	 run ocamllex on .mll file creates (compiles) a .ml file
+	    .ml is a table-driven finite automaton
+	 rule token = parse
+	    creates recursive function token that essentially does automata traversal
+	 Lexing.engine -> ocaml module worth looking at
+	 parser will take:
+	    1+2+3
+	    creates lexbuf (input string with pos in string)
+	    calls token lexbuf which retrieves next token
+	       Int(1), Plus, Int(2), Plus, Int(3), EOL
+	 for parser, if any of the regexp overlap, ocaml will probably match the first
+	 finite automata has limited number of states
+	 parse string for:
+	    1+2+3
+	    Grammar is ambiguous: there are two possible parse trees
+	 Let's consider instead:
+	    E -> T | E + T
+	    T -> n | (E)
+	    no longer ambiguous
+	    E
+	    (E+T)
+	    (E+T)(+)(3)
+	    (T)(+)(T)(+)(3)
+	 .mly file defines the parser
+	    %token at beginning define tokens used by lexer
+	    %start defines start symbol of grammar
+	    generally terminals are uppercase, non-terminals are lowercase
+	       opposite of how we generally write it
+	 run .mly with ocamlyacc
+	    we get .mli file and a .ml file
+	 start symbol of grammar becomes name of function in .mli
+	 .ml file:
+	    there are many tables (table-driven file)
+	    Parsing.yyparse -> ocaml standard library
+	 Our goal is to produce AST
+	 Every production has a given value (andtype)
+	    {$1} in the .mli file
+
+      Derivation
+      Leftmost/rightmost
+      sentential form
+         E -> E+E -> n+E -> n+n (each thing separated by "->" is a sentential form)
+      FIRST(alpha) - set of potential first characters
+         S -> a | B | Bc |Df
+	 B -> b
+	 D -> d | empty
+         First(S) = {a,b,d,f}
+
+      if we have x,y where x,y are collections of terminals
+         we want to go all the way backwards to S (starting symbol of grammar)
+	 xy -> aby -> aBy -> ABy -> ... -> S
+	 production goes from B->a, reduction goes from a->B
+	 If there exists only one parse tree, there is only one left and right most derivation
+	    maybe there's some hope for us

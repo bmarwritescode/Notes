@@ -2,7 +2,7 @@
 
 int * const blah --> the pointer cannot be changed
 const int *blah  --> the pointer is to a const int
-
+            
 consider:
 	arr = {1,2,3,4,5}
 	a = arr
@@ -96,3 +96,28 @@ Pointer Alignment
    consider:
       struct foo {int a; char b; int c;};
          sizeof(foo) = 12 bytes (not 9 due to int 4-byte alignment)
+
+9/7 (Discussion)
+
+   Project 0:
+      Ensure that everything is appropriately freed in Close
+         Try a test that repeatedly calls Pipe and Close
+
+   Project 1:
+      Mutex will probably be the way to go		
+      Take a look at Spawn (in user.c)
+         Spawn unsurprisingly Spawns a user process      
+      Each process has a kernel_thread associated with it
+         Each of these has a user_context
+      Jump around k_thread struct and User_Context struct (user.h)
+      Also Sys_Spawn -> look here also
+      Mutex in sync.c (I think)
+
+   gdb notes:
+      run "make dbg run;make dbg"
+      b "Sys_Spawn" --> breakpoing at Sys_Spawn function 
+      s -> step into
+      n -> step over
+      c -> keep going till next breakpoint
+      printx --> print variable in hex
+      struct notation from c still works for print
