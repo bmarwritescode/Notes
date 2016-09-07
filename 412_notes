@@ -1,0 +1,53 @@
+9/6 (Lecture)
+
+Project 1: Fork and exec
+
+   After fork, we have 2 user processes (user address space)
+      Each has a unique Kernel_Thread (KT)
+         Each KT has its own Stack -> you must decide what Stack is inherited
+            Each KT has a unique userContext (UC)
+               Each has an individual set of file descriptors (FD)
+	          Each FD points into the same File Descriptor Table (FDT)
+      Global variables start out the same, but are updated separately
+      EIP is copied into new process
+      Spawn (maybe in user.c or userseg.c) has most of what we need	    
+      In GEEKOS, no stdin, stdout, stderr
+
+User Process vs. Kernel
+   Process believes it has its own CPU
+   Process essentially believes there is infinite memory
+   Process believes there are "files" and "directories"
+   Process believes there is "Wall" between it and other processes
+   IPC - Inter-Process-Communication
+      pipe, signal, shared memory, message passing, network sockets
+
+Virtual Memory
+   Any time the address in a register is different from the physical address
+   Can be used to provide illusion of more space
+   0xfffffff
+   ________
+   stack (grows down)
+   ________
+   heap (grows up)
+   ________
+   data
+   ________
+   txt
+   ________
+
+   ________
+   0x00000000	
+
+   segmentation allows >1 instances of the same program
+   nm (executable) -> shows addresses of all symbols in executable
+      first usable page starts at 0x1000 because we want 0 to be reserved
+      for Null
+
+Pointer Alignment
+   (int *) -> should be 4-byte aligned
+      should be a multiple of 4
+   (char *) -> should be 1-byte aligned
+      should be a multiple of 1
+   consider:
+      struct foo {int a; char b; int c;};
+         sizeof(foo) = 12 bytes (not 9 due to int 4-byte alignment)
