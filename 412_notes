@@ -121,3 +121,124 @@ Pointer Alignment
       c -> keep going till next breakpoint
       printx --> print variable in hex
       struct notation from c still works for print
+
+9/8 (Lecture)
+
+   Project 0: 
+      Too much output being printed by students
+         try :
+            fn() {
+      	       static int ive_complain;
+
+	       if (!ive_complained) {
+	          Print("waaa!");
+	          ive_complained = 1;
+	       }
+	fixed size buffer:
+	   allocate little buffers in a list
+	   allocate a single buffer and shift/advance (I shift)
+	      advance would probably be better, but I should check changes
+	      for shift I should use memmove, not memcpy
+
+   Process States:
+      Running:
+         to get to Waiting:
+	    waiting for input(device)? child process to terminate? mutex?
+	 to get to Runnable:
+	    dispatcher (I think) can force an active process into the run queue
+      Runnable:
+         to get to Running:
+	    piece of software (dispatcher) pops process off of run queue
+      Waiting (Blocked):
+         to get to Runnable:
+	    when the thing we were waiting for happens
+	    (unblocked/awakened from the wait queue)
+
+      for all process in Runnable (on run queue):
+         how do we decide which to run?
+	 how do we manage the Run Queue?
+	    - priorities on processes
+	       * most complex last
+	       * how long it's been waiting
+	          - longer waits first, avoid starvation
+	       * how much longer it will run
+	          - longer run last, allow short jobs responsive
+		  - can we do this? (external spec?, predicter?)
+	       * how much resources it will use
+	          - can be useful in event of conflict on resources
+		  - possible justification to suspend process
+	       * solving priority inversion
+	          - priority inversion
+		     * parent important, calls wait on child
+		     * child not important (doesn't fit above criteria)
+		     * high priority waiting on low priority
+		  - possibly temporarily bump up a low priority process
+	       * Avoiding starvation is particularly important
+	       * Allowing short commands to be responsive is also important
+
+      Scheduler (three levels):
+         long-term scheduling:	
+	    deciding which process to run (or really start) 
+	       - associated with "batch"
+	          * old-school approach when punch cards were a thing
+		  * finish one process, move onto the next
+		  * as opposed to time-sharing
+		     - we start a job whenever we want (conventional for us)
+	 medium-term scheduling
+	    decide which processes to suspend
+	       - frequently not done
+	 short-term scheduling
+	    decide which processes to give to the CPU next
+	    a couple of milliseconds
+
+	our job is to separate jobs between I/O bound and CPU-bound
+	   I/0 Bound:
+	      block frequently
+	      don't use much CPU
+	      should be scheduled quickly
+	         ensures the CPU-bound jobs don't have to wait very long
+              go to the "front" of the run queue
+	   CPU-Bound
+	      get pre-empted
+	         make transistion from Running to Runnable
+		 predictably use a lot of CPU
+		 dont use other resources (significantly)
+		 less likely to be interactive
+		 they can stand to wait
+                 go to the "end" of the run queue
+       scheduling in Geekos:
+          one queue, there are priorities but they are all the same
+
+   How to create a new process?
+      usulally via fork
+         except to start "init"
+	    first user process
+	    attaches login prompts to the console
+	    starts up daemons (servers)
+	    reaps all orphan zombies
+	       zombie is a process that is dead (no exit status)
+	       orphan has no parent
+         in GEEKOS, there is no "init", kernel starts shell
+	    this is b/c Geekos sucks
+      fork():
+         return values:
+	    0 - in the child
+	    child_pid - in the parent
+	    <0 - on error
+	 prints before a fork CAN be printed by both child and parent
+	    if buffer hasn't been flushed yet
+	    buffer maintained in user space
+
+   How do processes die?
+      Exit()
+         return from main is an example of this
+      unhandled exception (i.e. SIGSEGV --> segfault, SIGPIPE)
+         side note: SIGSEGV and SOME other signals can be handled
+      signal from another process
+         i.e. SIGKILL from shell
+	 side note:
+	    hierarchy of signals to use to kill a process:
+	       kill -INT <proc> (same as ^C)
+	       kill -HUP <proc> (tells process to try to end appropriately)
+	       kill -TERM <proc> ("-TERM" is optional)
+	       kill -9 <proc> (unhandleable DIE DIE DIE)
