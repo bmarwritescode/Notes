@@ -262,3 +262,167 @@ OCaml review:
 	 production goes from B->a, reduction goes from a->B
 	 If there exists only one parse tree, there is only one left and right most derivation
 	    maybe there's some hope for us
+9/12
+
+   Project 1:
+      no errors in lambda add tested by secret tests (oUnit)
+
+   Parsing:
+      Ocaml yacc:
+         .mly -> (.mli and .ml)
+
+      Consider:
+         1. S -> aABe
+	 2. A -> Abc 
+	 3.    | b
+	 4. B -> d
+
+	 input string = "abbcde"
+
+	 should we start from S and work down (top down) or try to go
+	 from string to S (bottom up)
+	 
+	 lets try bottom up:
+	    
+	    abbcde <--3-- aAbcde <--2-- aAde <--4-- aABe <--1-- S
+
+	    the second "b" from "abbcde" isn't followed by a c, so it must
+	    come from A
+	    	    
+            if the grammar is unambiguous, there is only one right and left
+	    hand derivation!
+	       the above example is a right-most derivation
+	 
+      handle - a pair (A->beta, k) where (A->beta) is a production and
+      k is a position applied, where the handle is applied in a 
+      (right-most) derivation
+	 the handle is unique for a right-most derivation in an 
+	 unambiguous grammar
+
+      let's consider a parser that scans input from left-to-right
+      	    shift-reduce parser
+	       stack keeps track of what we've seen
+	       let's pretend we have a lexer:
+	          t = next-token() (Provided by lexer)
+		  s = initially empty stack
+
+	          until (s.top == S and token == EOF)
+	             // should we reduce it?
+	             if (s.top is handle A->beta)
+		        pop |beta| symbols from S
+		        push A
+		     else
+		        push t
+		        t = next_token()
+
+		   if --> "reduce" phase
+		   else --> "shift" phase
+
+      Consider:
+         1. S -> aABe
+	 2. A -> Abc 
+	 3.    | b
+	 4. B -> d
+
+	 input string = "abbcde"
+
+	 let's use a shift-reduce parser this time:
+	    
+	    initial top of stack = ^
+
+	    stack:	   input:	   action:
+	    ^		   abbcde	   shift
+	    ^,a		   bbcde	   shift
+	    ^,a,b	   bcde	   	   reduce 3
+	    ^,a,A	   bcde	   	   shift
+	    ^,a,A,b	   cde		   shift (convoluted reasoning)
+	    ^,a,A,b,c	   de		   reduce 2
+	    ^,a,A	   de		   shift
+	    ^,a,A,d	   e		   reduce 4
+	    ^,a,A,B	   e		   shift
+	    ^,a,A,B,e	   EOF		   reduce 1
+	    ^,S		   EOF		   ACCEPT
+	    
+	    Note: convoluted reasoning as to when shift vs. reduce
+
+      When do you shift and when do you reduce?
+         for this parser, we're going to use finite automata
+	    we will have DFA states between every value on the stack
+      	    each DFA state will have "memory" of what's been seen
+	 Action vs. goto table
+	    action table tells you whether you should shift or reduce
+	    and which state you should go into
+	    s3 -> shift and then go to state 3
+	    r3 -> reduce by production 3
+	 lets consider a parser table created by Ocamlyacc
+
+	    s = stack     
+	    t= next_token()
+	    ^ = initial top of stack
+	    #'s refer to corresponding states
+	 
+	    s.push(^)
+	    s.push(1)
+	    
+	    not_found = true
+	    while (not_found)
+	       state = s.top
+	       
+	       if ACTION[state,t] == "reduce A->beta"
+	          s.pop(2|beta| state/symbols)
+		  state = s.top
+		  s.push(A)
+		  s.push(GOTO[state,A])
+	       else ACTION[state,t] == "shift n"
+	       	  s.push(t)
+		  s.push(n)
+		  t = next_token()
+	       else
+	          ERROR
+
+	 Using Ocamlyacc example parser table from slide:
+	    
+	    stack:			input:		action:
+	    ^,1				N+N+N		s3
+	    ^,1,N,3			+N+N		r4
+	    ^,1,term,7			+N+N		r2
+	    ^,1,expr,6			+N+N		s10
+	    ^,1,expr,6,+,10		N+N		s3
+	    ^,1,expr,6,+,10,N,3 	+N		r4
+	    ^,1,expr,6,+,10,term,12	+N		r3
+	    ^,1,expr,6			+N		s10
+	    ^,1,expr,6,+,10		N		s3
+	    ^,1,expr,6,+,10,N,3		EOL		r4	
+	    ^,1,expr,6,+,10,term,12	EOL		r3	
+	    ^,1,expr,6,			EOL		s9
+	    ^,1,expr,6,EOL,9				ACCEPT
+
+	    *NOTE: the state you look at in the action table is whichever
+	           state is at the top of the stack after reduction
+
+      Let's consider the DFA:
+         let's give our states helpful elements for our understanding:
+	    an LR(0) item is a production with a dot (.)
+	       (in writing the dot like multiply]
+	       For example:
+	          [A->.(beta)(gamma)] 
+	          [A->(beta).(gamma)] 
+	          [A->(beta)(gamma).]
+
+	    
+	    S -> E
+	    E -> T+E
+	       | T
+	    T -> id
+
+	    DFA:
+		"State 1"	"State 2"	"State 3"	
+	    	[S->.E]		[T->id.]	[E->T.+E]
+	    	[E->.T+E]  			[E->T.]
+	    	[E->T]
+	    	[t->.id] 
+
+		"State 1" --id--> "State 2"
+		"State 1" -->T--> "State 3"
+
+           *Note: It seems dot (.) refers to consumption of (Non)terminal
