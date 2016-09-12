@@ -242,3 +242,19 @@ Pointer Alignment
 	       kill -HUP <proc> (tells process to try to end appropriately)
 	       kill -TERM <proc> ("-TERM" is optional)
 	       kill -9 <proc> (unhandleable DIE DIE DIE)
+
+9/12 (Discussion)
+
+   debugging:
+      make "dbgrun" in one window
+      make "dbg" in another
+      repeats last command on "enter"
+      "b file.c:LINE_NUM"
+      "info threads"
+      "thread apply 1 bt" (bt = backtrace)
+      "thread apply all bt" (bt = backtrace)
+      break on 90th iteration of loop?
+         "b syscall.c:914 if count > 90"
+      can't print MACROS in gdb :(
+         you can create a variable to reference the MACRO if you want
+      "print *struct_ptr" gives all things in struct 
