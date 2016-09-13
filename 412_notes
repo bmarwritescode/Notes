@@ -258,3 +258,117 @@ Pointer Alignment
       can't print MACROS in gdb :(
          you can create a variable to reference the MACRO if you want
       "print *struct_ptr" gives all things in struct 
+
+9/13 (Lecture)
+
+   the static keyword (in C)
+      on a local variable: lives beyond the function's execution
+      on a function defined in a header (.h) file:
+         - avoids confusing the linker with multiple definitions in
+	  different .o files
+	 - putting a static prototype in a header is essentially useless
+	 - this idea assumes the body of the function in in the header 
+	 - Enable_Interrupts and Disable_Interrupts
+      one a function defined in a C (.c) file:
+         - avoids polluting the name space of functions (e.g. "index")
+	 - asserts that a function cannot be called outside the file
+	   (except via a function pointer)
+	 - We can change a static keyword in GEEKOS, but be careful
+	    * Don't copy and paste the code though, that's gross
+
+   Project 1:
+      What should be copied into the child process?
+         two pieces of user context should change:
+	    - set of pointers that define the memory space (base ptr, etc)
+	       * look at userseg.c and maybe spawn.c?
+	       * might be called "LDT"
+	    - file descriptors should stay the same but ref count in each
+	      file should change
+	    - stack ptr IN user context (Neil doesn't think it's used)
+	       * Maybe at the beginning, but we prob shouldn't worry
+	 kthread needs a new stack, and then esp somewhere in that page 
+      When a process exists, when should we free the memory?
+         - we should keep the exit status
+	 - it's up to us when it should actually get freed
+
+   Inter-process communication (IPC):
+     examples of IPC in use b/n processes on the same machine:
+        - popen (child process) to get input
+	- getting graphics to the window server
+	- syslog (centralized logging service)
+	   * syslog process has total control over the logs
+	- process pool 
+	   * coordination via shared memory
+	- database
+	- signals sent during shutdown or power failure
+
+      Message passing vs. pipe:
+
+      message passing:           	   pipe:
+      message (one block)     		   byte-stream (|read| != |write|)
+      per-message destination (usually)	   connected (just one other end)
+      associated with microkernels	   not	   
+      supposed to be very fast		   not?
+
+      Why IPC and Processes instead of threads?
+         - consider the examples of IPC list
+	 - isolation
+	    * if one dies the rest are fine (one can die alone)
+	    * if a thread crashes it will kill everyone
+	 - reuse
+	    * the pager "less," other combinations from the shell
+	 - different kernel-level "aspect"
+	    * vary permisions/user
+	    * different priorities (unsure of whether this is in threads)
+	    * different set of file descriptors
+	       - threads don't get their own file descriptors
+	 - an idle process can be paged out (rarely used)
+	 - migrate to multiple machines easily
+
+      IPC (the ugly way):
+         f = fopen("a_file.txt", "w");
+	 fwrite(.....,f);
+	 fclose(f);
+	 ------------------------------------------------------------
+	 while ((f=fopen("a_file.txt", "r"))==NULL) {
+	     sleep(1);
+	 }
+	 fread(...); 
+
+	 - essentially how compiler communicates with linker
+
+      Shared memory approach:
+         - not done in GEEKOS
+	 - imagine two processes with independent virtual address spaces
+	    * imagine they have unique stacks in physical memory
+	    * they both have a shared code segment in physical memory
+	 - they could have a shared memory region
+	    * not necessarily at the same point in their individual
+	      virtual address space
+	    * both point to the same point in physical memory
+	 - very fast, no communication through kernel necessary
+	 - the shared code-segment is different
+	    * mapping the same read-only page does not amount to 
+	      "shared-memory" IPC
+	 - if you fork, the top of the stack points to the same point
+	   until one is attempted to be written to, at which point the
+	   one written two will be allocated a new read-allowed page
+	 - interface for this:
+	    * shmget - may create
+	    * shmctl - sets permissions
+	    * shmat - "open"
+	    * shmdt - "close"
+	 - essentially we want a pipe like scheme for the shared memory
+	 - how do we coordinate this shared memory?
+	    * partition
+	       - using software, decide which process should write which
+	         part of the shared memory (set flags for read/write)
+	    * sequence number
+	       - define each message as having #, length, and body
+	       - let's say 1 is writing, 2 is reading
+	       - 2 keeps track of the last # read
+	       - assuming they are sequential (or ordered in some way)
+	         2 can appropriately know which to read
+	       - 2 can have an int that allows 1 to know when the writer
+	         can delete already read messages
+	    * semaphore, mutex, condition variable, etc.
