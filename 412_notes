@@ -401,3 +401,15 @@ Pointer Alignment
          initial reference count is 2 after fork (parent AND child)
 	 be careful for non-waiting parents
 	    i.e. children waiting count will be 1 if no waiting parent
+
+      git notes:
+         you should commit frequently, push less frequently
+	 git status
+	 git log
+	 git branch "test_name"
+	    git checkout "test_name"
+	 git checkout "commit number"
+	 git reset --hard "commit number" HEAD~n
+	    completely deletes "n" most recent commits
+	 git revert Head~n
+	    revert previous "n" commits but keeps history
