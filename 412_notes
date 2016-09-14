@@ -372,3 +372,32 @@ Pointer Alignment
 	       - 2 can have an int that allows 1 to know when the writer
 	         can delete already read messages
 	    * semaphore, mutex, condition variable, etc.
+
+9/14 (Discussion)
+
+   Project 1: Fork
+      LDT (Local Descriptor Table):
+         This should be handled by create_context
+	 I don't think we need to worry about anything more than copying it over
+      start_user_process vs. creating your own?
+         probably use built-in over user-created, but it's really up to you
+      user_context -> memory
+         allocated by built-in functions I believe
+	 you can copy this for forking, probably not for exec-ing though
+
+      state pointer will point to beginning of "interrupt state" struct always
+         esp not as reliable
+
+      poke around in kthread.c
+         create_thread and whatnot
+
+      copying the kernel stack?
+         maybe disable interrupts? not sure about that
+         "copy" interrupt state
+	    copy what you KNOW will still be there from the kernel stack
+	 for exec, changing eip might be advised
+
+      kernel thread also has a reference count
+         initial reference count is 2 after fork (parent AND child)
+	 be careful for non-waiting parents
+	    i.e. children waiting count will be 1 if no waiting parent
