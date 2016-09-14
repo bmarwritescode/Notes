@@ -426,3 +426,135 @@ OCaml review:
 		"State 1" -->T--> "State 3"
 
            *Note: It seems dot (.) refers to consumption of (Non)terminal
+
+9/14
+
+   Project 1: Final notes
+      we can use the ocaml "top-level"
+         run "ocaml"
+	 you have acess to a bunch of things (i.e. #help)
+	    also #use ONLY in top level
+      we can also use ocamlc --> essentially make
+         we can use Open instead of #use
+
+   let's see how the DFA is actually built:
+      
+      S-> aSa | b
+
+      let's add a start symbol (so we know if we reduce there, we are done)
+      
+      0. S' -> S
+      1. S -> aSa 
+      2.      | b	
+
+      dot means we expect to see something spawned by S
+
+      STATE 0 is the start state
+      If we are in state 1, the DFA "remembers we've seen an "a""
+
+      STATE 0:
+      [S' -> .S] 
+      [S -> .aSa]
+      [S -> .b]
+
+      STATE 1:
+      [S -> a.Sa]
+      [S -> .aSa]
+      [S -> .b]
+
+      STATE 2:
+      [S -> b.]	
+
+      STATE 3:
+      [S -> aS.a]	
+
+      STATE 4:
+      [S -> aSa.]	
+      
+      STATE 5:
+      [S' -> S.]
+
+      STATE 0 --a--> STATE 1
+      STATE 0 --b--> STATE 2
+      STATE 1 --a--> STATE 1
+      STATE 1 --b--> STATE 2
+      STATE 1 --S--> STATE 3
+      STATE 3 --a--> STATE 4
+      STATE 0 --S--> STATE 5
+
+      stack:		   input:		action:
+      ^,0 		   aabaa		shift 1
+      ^,0,a,1		   abaa			shift 1
+      ^,0,a,1,a,1	   baa			shift 2
+      ^,0,a,1,a,1,b2	   aa			reduce 2
+      ^,0,a,1,a,1,S,3	   aa			s4
+      ^,0,a,1,a,1,S,3,a,4  a			r1
+      ^,0,a,1,S,3  	   a			s4
+      ^,0,a,1,S,3,a,4  	   a			r1
+      ^,0,S,5		   			accept
+
+      whenever you have a state where the dot is all the way right it means you could
+      reduce
+
+            ACTION            GOTO
+      State	a	b	S
+      0	    	s1		5
+      1		s1	s2	3			
+      2		r2	r2
+      3		s4	
+      4		r1	r1	
+      5		r0	r0
+
+      Action table: 
+         tells you when to transition on terminals
+
+      GOTO table: 
+         tells you when to transition on non-terminals
+
+   New grammar:
+      S' -> S
+      S -> Ac|Bd
+      A -> a
+      B -> a
+
+      let's build a parser DFA:
+
+      STATE 0:
+      [S' -> .S]
+      [S -> .Ac]
+      [S -> .Bd]
+      [A -> .a]
+      [B -> .b]
+
+      STATE 1: --> reduce/reduce conflict (two reductions, unsure of which to do)
+      [A -> a.]
+      [B -> b.]      
+
+      STATE 0 --a--> STATE 1
+
+      reduce/reduce conflicts are generally caused by ambiguous grammars
+
+      "ocamlyacc -v parser.mly" is super helpful
+         look through the parser table!
+	 it will tell you about shift/reduce conflicts
+
+      S -> ac | ad (fixes reduce/reduce conflicts)
+
+      algorithm for defining a parser DFA:
+      
+         closure(state) - 
+	    for every item [A -> beta.B.delta] in state
+	    for all productions B -> gamma
+	    add [B -> .gamma] to state
+	    (repeat this until there's nothing left to add to state)
+
+	 goto(state,x) - 
+	    x is either terminal or non-terminal
+	    new state is initially empty
+	    For every [A->beta.Xdelta] in state
+	       new = new U [A -> betaX.delta]
+	    add closure(new) to DFA
+
+	    the "inital" part of the state (the first production) is called the kernel
+	       the rest are called the closure
+	       ocamlyacc only shows the kernel
