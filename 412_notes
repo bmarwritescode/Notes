@@ -413,3 +413,95 @@ Pointer Alignment
 	    completely deletes "n" most recent commits
 	 git revert Head~n
 	    revert previous "n" commits but keeps history
+
+9/15 (lecture)
+
+   Fork is not recursive
+      - fork provides an interface to user code, but the child process starts as if new
+
+   Make_Runnable -> sticks child on run queue
+
+   To go to Running, Handle_Interrupt will do this (from Runnable)
+      Handle_Interrupt always calls GetNextRunnable	 
+
+   At the top of the kernel's (parent) stack:
+      Interrupt_State (all the registers)
+
+   kthreaad->esp should be set to state initially
+      pretty much only valid for this purpose (doesn't necessarily get updated w/ actual
+      esp)
+
+   The address at the bottom of the stack page
+      something like (0x00034000)
+         3 zeros at end, a couple at beginning
+      therefore, at all times 
+         KASSERT((kthread->esp) & 0xFFFFF000 == kthread->stackPage)
+
+   user_context vs. kthread stack?
+
+   Sockets:
+      Unix Sockets
+         - on the same machine
+	 - allows extra information and trust
+	    * what user owns the other process?	 
+	 - you can pass an open file through the socket
+	 - on the same machine, this is probably more efficient
+      IP Sockets
+         - network communcation
+	 - really can only know the address of the other endpoint
+
+      Datagrams
+         - messages
+	 - packets (UDP: User Datagram Protocol)
+	 - might not be "connected"
+	    * you may specify the destination with every message (sendto())
+      Bytestreams
+         - sequence of bytes (TCP)
+	 - connected
+	 - similar to pipe
+
+      socket() 
+         - creates a socket
+	 - returns a file descriptor
+	 - tells the kernel the type you want (Unix, bytestream, etc.)
+
+      SERVER SIDE:
+
+      bind()
+         - specifies the endpoint associated with a socket
+	 - endpoint will probably be a path for Unix
+	 - "	    	 	  "  a TCP Port for IP
+	 - if the caller doesn't specificy the port, one will be allocated for you
+
+      listen()
+         - express a willingness to accept connections
+
+      accept()
+         - takes a file "listening" descriptor
+	 - returns a new file descriptor for an incoming connection
+
+      CLIENT SIDE:
+
+      connect()
+         - specifies a remote endpoint for the socket
+	 - bytestream -> connection setup request
+	 - datagram -> set the implicit destination
+
+      OTHER SOCKET FUNCTIONS:
+         read/recv/recvfrom
+      	 write/send/sendto
+      	 close
+	 shutdown()
+	    - I am done writing
+	    - I am done reading
+	    - I am done with both
+
+      Threads:
+         - shared address space
+	 - own stack
+	    * call pthread_create and what happens?
+	       - malloc a new area beneath the first stack
+	       - no virtual memory trickery
+	    * what happens when a function from a pthread returns?
+	       - return address to some routine that will keep EAX for later pthread_join
+	 - threads are hard to debug because of shared address space
