@@ -512,3 +512,73 @@ Pointer Alignment
       you probably don't want to use a global lock for pipes
       don't worry about synchronization on other types of files (not pipes)
       Don't assume atomicity
+
+9/20 (Lecture)
+
+     Project 1:
+          User process address space
+	     stack at the end of user process address space
+	     command line args must be put on the user stack
+	        two parameters to main:
+		   argc and argv
+		argv pushed onto user stack frame, followed by argc pushed
+		   after those, return address is pushed onto stack
+		   after that, old ebp is pushed
+		where do the strings that argv points to go?
+		   doesn't really matter (we have a pointer)
+		   however they are generaly put right above the stack
+
+          Register Dump:
+	     What to do with Exception 13?
+	        Machine tried to look at pointer it shouldn't
+	     Which registers matter?
+	        eip:
+		   if in range 0x1000-0x3000 -> likely valid user instruction address
+		   if in range 0x10000-0x40000 -> likely valid kernel instruction address
+
+		   How to figure out what eip really is?
+		      in make dbg
+		         can run "dis (eip)"
+			    gives which function and what instruction
+		      "sort -n build/geekos/kernel.syms"
+		         gives you the function
+			 
+                 Interrupt number 6:
+		    not really an instruction (or not one can be run in this privilege)
+         in gdb:
+	    x /100 0x000bfcda
+	       command to examine amount of memory regardless of type
+	    thread apply all bt
+	       similar to single threaded "where"
+
+   setjmp(buffer)
+      creates an image of current context, sticks it into buffer
+         includes register state, eip, etc.
+      store current context (registers and such) into a buffer
+      will return differnt value the first time   
+
+   longjmp(buffer)
+      jump back to state represented by buffer
+      restor a stored context (jumping far)
+
+   linked-list of runnable threads
+      in each node is info about thread (start ptr, args, ret) and buffer
+      
+   we use setjmp to save current state and put it on thread queue
+      then longjmp to new buffer for new thread
+
+   User-Level Threads:
+      kernel knows nothing about them
+      advantages:
+         user has control over scheduling and can avoid bad interactions
+	 very fast creation/destruction of threads
+      disadvantages:
+         can't use multiple processors
+	 complexity in avoiding blocking system calls
+
+   How many kernel threads should you have?
+      number of processors?
+      expected number of blocked threads
+         if large:
+	    probably better to do something else
+	    don't block
