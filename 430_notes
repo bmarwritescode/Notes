@@ -558,3 +558,211 @@ OCaml review:
 	    the "inital" part of the state (the first production) is called the kernel
 	       the rest are called the closure
 	       ocamlyacc only shows the kernel
+
+9/19
+
+   Exam: Possibly Monday, October 10th
+
+   LR(0) parser (0 implies no lookahead)
+
+   1. S -> E
+   2. E -> T + E
+   3.      | T
+   4. T -> n
+    
+   Let's build a DFA:
+
+   STATE 0:
+   [S->.E]
+   [E->.T+E]
+   [E->.T]
+   [T->.n]
+
+   STATE 1:
+   [T->n.]
+
+   STATE 2:
+   [E->T.+E]
+   [E->T.]
+
+   STATE 3:
+   [E->T+.E]
+   [E->.T+E]	
+   [E->.T]
+   [T->.n]
+
+   STATE 4:
+   [E->T+E.]	
+
+   STATE 0 --n--> STATE 1
+   STATE 0 --T--> STATE 2
+   STATE 2 --+--> STATE 3
+   STATE 3 --n--> STATE 1
+   STATE 3 --T--> STATE 2
+   STATE 3 --E--> STATE 4
+
+   stack:	  	input:		action:
+   ^,0		  	n+n$  		s1
+   ^,0,n,1	  	+n$		r4
+   ^,0,T,2	  	+n$		s3
+   ^,0,T,2,+,3	  	n$		s1
+   ^,0,T,2,+,3,n,1	$		r4
+   ^,0,T,2,+,3,T,2	$		r3
+   ^,0,T,2,+,3,E,4	$		r2
+   ^,0,E,acc		$
+
+   	 n:	 +: 	$:	E:	T:	S:
+   0	 s1	 		acc	2
+   1	 r4	r4	r4
+   2	 r3	s3/r3	r3
+   3	 s1			4	2
+   4	 r2	r2	r2			
+
+   closure(state s)
+      until a fixpoint(terminal)
+         for every [A->beta.Bdelta]
+	    for every B-> gamma
+	       add [B->.gamma] to s
+
+   with lookahead:
+   closure(state s)
+      until a fixpoint(terminal)
+         for every [A->beta.Bdelta,a]
+	    for every B-> gamma
+	       for every b in FIRST(deltaa)
+	       	   add [B->.gamma,b] to s	
+	   
+   goto(s, X)
+      new = empty
+      for every [A->beta.Xdelta] in s
+         add [A->betaX.delta]
+
+   with lookahead"
+   goto(s, X)
+      new = empty
+      for every [A->beta.Xdelta,a] in s
+         add [A->betaX.delta,a]
+      apply closure to new
+ 
+   This grammar is not LR(0)
+      the grammar is still unambiguous!
+      shift/reduce conflict makes the parser not work
+      How do we fix this?
+
+   Let's try an LR(1) parser!
+      an LR(1) item looks like:
+         [A->.beta,a]
+	 next character is beta, after that we expect to see "a"
+	 what about:
+	    [A->beta.,a]
+	    only reduce if next character is actually a
+	 We can have:
+	    [A->.beta,a]
+   	    [A->.beta,b]
+	    in the same state
+	    can be written as:
+	    	[A->.beta,a/b]
+
+   STATE 0:
+   [S->.E,$]
+   [E->.T+E,$]
+   [E->.T,$]
+   [T->.n,+/$]
+
+   STATE 1:
+   [T->n.,+/$]
+
+   STATE 2:
+   [E->t.+E,$]
+   [E->T.,$]
+
+   STATE 3:
+   [E->T+.E,$]
+   [E->.T+E,$]
+   [E->.T,$]
+   [T->.n,+/$] --> (+ is FIRST(+E$) and $ is FIRST($)
+
+   STATE 4:
+   [E->T+E.,$]
+
+   STATE 0 --n--> STATE 1 
+   STATE 1 --T--> STATE 2 
+   STATE 2 --+--> STATE 3 
+   STATE 3 --T--> STATE 2 
+   STATE 3 --n--> STATE 1
+   STATE 3 --E--> STATE 4  
+
+   	 n 	 +	 $	E	T	S
+   0	 s1	  	 	acc	2
+   1	 	 r4	 r4		
+   2		 s3   	 r3
+   3     s1			4	2
+   4	 		 r2
+
+   stack:		 input:		action:
+   ^,0			 n+n$		s1
+   ^,0,n,1		 +n$		r4
+   ^,0,T,2		 +n$		s3
+   ^,0,T,2,+,3  	 n$		s1
+   ^,0,T,2,+,3,n,1  	 $		r4
+   ^,0,T,2,+,3,T,2  	 $		r3
+   ^,0,T,2,+,3,E,4  	 $		r2
+   ^,0,E,acc		
+
+   ocamlyacc arbitrarily chooses shift over reduce in s/r conflicts
+      be careful with this
+      don't keep s/r conflicts in the project
+
+   adding "left PLUS" at top of .mly file will make terminal 
+   PLUS left-associative
+
+   adding "left TIMES" above "left PLUS" gives TIMES lower precedence
+      same line definition gives same precedence
+
+   these declarations CAN help get rid of s/r conflicts
+      you can use them, probably better to refactor grammar
+
+   r/r convlict often but not always caused by an ambiguous grammar
+
+   E->E+E
+      | n
+
+   Refactored: (Right Recursive)
+   E->T+E
+      | T
+   T->n
+
+   Again:(Left Recursive)
+   E->E+T
+      | T
+   T->n
+
+   Top-Down parser must be Right Recursive
+
+   for shift/reduce parsers, either will work
+       there is a slight memory benefit to left recursive
+          if there's a long string of (n+n+n+...+n)
+	     for left-recursion this might save space
+	        reduces before all the ns are pushed on the stack
+
+   despite what we've been told thusfar, ocamlyacc produces LALR(1)
+      not LR(1)
+      
+   LALR(1):
+      STATE 1:
+      [E->a.,b]
+      [E->ba.,c]
+      
+      STATE 2:
+      [E->a.,d]
+      [A->ba.,b]       
+
+      core of a transition is just the thing without the lookahead
+         if cores are equal, states are combined and lookaheads are
+	 concatanated
+	 
+      makes slightly smaller parsing tables
+
+      r/r conflicts can (but not likely) come from LALR(1) conflict
+         even if it works with LR(1)
+	 will never cause s/r conflicts

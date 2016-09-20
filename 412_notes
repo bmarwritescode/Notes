@@ -505,3 +505,10 @@ Pointer Alignment
 	    * what happens when a function from a pthread returns?
 	       - return address to some routine that will keep EAX for later pthread_join
 	 - threads are hard to debug because of shared address space
+
+9/19 (Discussion)
+
+   Project 1:
+      you probably don't want to use a global lock for pipes
+      don't worry about synchronization on other types of files (not pipes)
+      Don't assume atomicity
