@@ -582,3 +582,15 @@ Pointer Alignment
          if large:
 	    probably better to do something else
 	    don't block
+
+9/21 (Discussion)
+
+   Project 1:
+      run while(Fork()>=0);
+         if you can return to shell and run stuff after this you're good
+      kill unwaited-on child
+         each kthread has a "parent" field?
+	 add a field to kthread? (at bottom)
+      you want a new ldt for child
+
+   Project 2: Signals
