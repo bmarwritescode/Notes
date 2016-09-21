@@ -766,3 +766,22 @@ OCaml review:
       r/r conflicts can (but not likely) come from LALR(1) conflict
          even if it works with LR(1)
 	 will never cause s/r conflicts
+
+9/21
+
+   Project 2:
+      store in a hash table? up to you
+      When writing the lexer:
+         you can have an associated toekn for every keyword
+	    will work, but you do end up with a larger DFA
+	       more keywords make bigger DFAs (there is a max size, so careful)
+	    ex:
+	       b	{bool}
+	 you can have a general rule: (assume hash table H)	 
+	    [a+z]+ as lxm {if H.has_key? lxm H[lxm] else ID(lxm)}
+	 what if an identifier is a keyword?
+	    option 1: don't alow it to happen (probably best choice)
+	    option 2: try to figure it out based on context (hard)
+
+      Change to project description?
+         "VEXPR = VEXPR" changed to "eq VEXPR VEXPR";
