@@ -607,3 +607,46 @@ Pointer Alignment
       GDT vs. LDT
       Privilege Mode
       Index in G/LDT
+
+9/22 (Lecture)
+
+   Interrupts:
+      lowlevel.asm --> Handle_Interrupt
+         first Save_Registers saves state
+         check that our pointer is to kernel data
+	 (skip stuff that isn't immediately obvious)
+	 kernel locking stuff (interrupts trylt disabled)
+	 IMPORTANT:
+	    get the address of the C handler function
+	    interrupt table -> holds address of handler function
+	       index in table is interrupt umber
+	    then call handler
+         Macro Push_Current_Thread_PTR:
+	    add thread to run queue
+         kthread->esp is reset to a vaild point in the stack
+	    then Get_Next_Runnable is called
+	 kthread->esp is set in lowlevel.asm
+	    it gets used in this code when a process is put onto CPU
+	    You must set esp in process creation so that this can use it
+	 maybe also look at Switch_To_Thread()
+	 when the registers are restored, actual esp moves up the stackpage
+	    kthread->esp does nothing!
+	 while a process is runnable:
+	    kthread->esp has value
+	 while a process is running:
+	    kthread->esp refers to where the registers were stored the last
+	    time it was interrupted
+	 consider not messing with kthread->esp if possible
+
+   Project 2: Signals
+      Signals: IPC's that essentially act as interrupts for user code
+      array of functions that can be invoked from "outside" a process	
+      return address above the signal handler will be a system call
+         we're now back in the kernel and can restore user context
+      we stash the interrupt state in the user stack so that handler
+      can reference this for system calls
+         seems like a security vulnerability
+      for signal table:
+         default: default behaviour
+	 ignore
+	 function ptr to handler
