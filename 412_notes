@@ -594,3 +594,16 @@ Pointer Alignment
       you want a new ldt for child
 
    Project 2: Signals
+
+9/21 (Personal Notes)
+
+   Descriptor gives:
+      base address
+      limit address
+      privilege
+      type (read,write,etc)
+
+   Selector gives:
+      GDT vs. LDT
+      Privilege Mode
+      Index in G/LDT
