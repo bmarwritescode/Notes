@@ -650,3 +650,62 @@ Pointer Alignment
          default: default behaviour
 	 ignore
 	 function ptr to handler
+
+9/26 (Lecture)
+
+   Project 2:
+      consider using git remote add some_name (url)
+         within project 1 directory
+      	 to push to new repo, git push some_name
+      trampoline:
+         Where do you return after signal is dealt with in user code
+	 trampline is the return address in kernel space where things 
+	 can be dealt with before return to user code
+      No signals to non-user processes
+      Sys_Signal
+         signal handler
+	 allows user to change signal handlers
+      Sys_Kill
+      SIG_DFL, SIG_IGN --> casting 1,2 to (signal_handler)
+      signal handler does not exist in GEEKOS
+         kthread struct probably a good idea
+      Sys_RegDeliver
+         Store the return for later
+      Sys_ReturnSignal
+         NOT EXPECTED TO RETURN
+	 the function does return, but it doesn't return to anything that
+	 expects a return value from THIS system call
+      Sys_WaitNoPID
+         Generic version of wait (no pid supplied)
+      Complete_Handler
+         might be useful for finishing a handling (clean up)
+     	 not already called anywhere in GEEKOS
+      Check_Pending_Signal
+         Used by GEEKOS
+	 Checks if there are any signals, doesn't do anything if there is
+      Setup_Frame
+         get process ready to run signal handler
+	 remember current state
+	 Sys_Signal will get a user address as a function pointer
+      Also a signal.c in /libc
+         Sig_Init
+	    calls RegDeliver when a program starts up
+	       registers a trampoline
+      Return_Signal
+         places 0x14 in eax
+	 issues interrupt
+	    number 14 system call gets you to Sys_ReturnSignal
+
+   Semaphore review:
+      semaphore {
+         counter = Init #;
+	 wait queue = ...
+      }
+
+      p, wait, down 
+         decrement counter, if 0 or negative, 
+	 it will put a process to sleep
+      v, signal, up 
+         increment counter, if 0 or negative, it will wake up
+      watch synchronization videos (semaphore one)
+      in linux, spinlock on things within semaphore
