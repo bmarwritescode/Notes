@@ -709,3 +709,120 @@ Pointer Alignment
          increment counter, if 0 or negative, it will wake up
       watch synchronization videos (semaphore one)
       in linux, spinlock on things within semaphore
+
+9/27 (Lecture)
+
+   Scheduler Activations
+      Idea:
+         - allow user-lived code to choose which thread to run
+	 - kernel decides when more or fewer (virtual) processors 
+	   are available
+	 - "upcalls" (like signalls with parameters) 
+	   allow kernel to tell user code about events
+      user-only: many user threads to one kernel thread
+      kernel-only: one user thread to each kernel thread
+      we want: many user threads: some kernel threads (enough to be good)
+         - some is generally less than many
+
+      User-level runnable threads (this queue not visible to kernel)
+         - kernel will alert user level stuff of availability of processor
+	 - user scheduled code will longjump to its chosen thread
+	 - this idea is different than what we've talked about before
+	    * allows for "better" optimization of scheduling (potentially)
+	 - suspend(state) will push register "state" on the back of the
+	   run queue
+
+   Don't call these functions (especially in multi-threading):
+      - strtok
+         * mangles its input (if you pass it a string, it will destroy it)
+	    - replaces specific delimeters with "\0"
+	 * remembers where it left off
+      - gethostbyname 
+         * looks up an array of records associated with a URL
+	 * returns a pointer to a shared buffer
+	 * if it is called again, initial buffer is overwritten
+      - gethostbyname_r
+         * the "_r" tends to indicate this is no longer a problem
+
+   Race Condition:
+      - outcome of execution depends on what happens first
+
+      example:
+         volatile int counter = 0; // volatile means always keep in mem
+
+         for (i=0;i<1000;i++) {
+            counter++; (global, in two different threads)
+	 }   	 		
+	 - we will not get counter = 2000
+	 - this is NOT an atomic instruction
+	 - without volatile, we'd probably get counter = 1000
+	    * compiler optimization will do ++ locally
+
+   Critical Section Problem:
+      - How do you provide synchronization on a real machine?
+      - 4 goals
+         a) Only one in the critical section at a time
+	 b) Progress: a thread outside its CS can't block another that 
+	    wants in
+	 c) Bounded waiting: shouldn't wait forever
+	 d) no assumptions about speed
+      - Critical section refers to section containing a race condition
+      - really only an issue in multi-processor environment
+      - solutions:
+         * Disable interrupts
+	 * have a lock variable (not a great solution)
+	    Enter() {
+	       while (lock != 0);
+	       lock = 1;
+	    }
+	    Exit() {
+	       // unlock
+	       lock = 0;
+	    }
+	    - this is okay but now lock variable needs to be protected (a)
+	 * have threads take turns (consider just 2 processes)
+	    - Thread A
+	       Enter() {
+	          while (turn != "A");
+	       }
+	       Exit() {
+	          turn = "B";
+	       }
+	    - Thread B
+	       Enter() {
+	          while (turn != "B");
+	       }
+	       Exit() {
+	          turn = "A";
+	       }
+	    - doesn't cause the problem with (a), but it does break (b)
+	       * Thread A must allow B to run and vice versa
+	 * Peterson's Solution
+	    - consider 2 processes (0 & 1)
+	       Enter() {
+	          flag[id] = true;
+		  turn = other_id;
+		  while (turn == other_id && flag[other_id]);
+	       }
+	       Exit() {
+	          flag[id] = false
+	       }
+	    - doesn't work for more than 2 threads
+	    - solves a, b, c, and d for those 2 processes
+	 * Bakery Algorithm
+	    - "take a number" scheme
+	       * wait until everyone with a lower number has finished
+	       	  Enter() {
+		     entering[id] = true;	
+		     number[id] = 1 + MAX_OF_OTHER_NUMBERS;	
+		     entering[id] = false;
+		     // N is number of threads
+		     for(j=1; j<=N; j++) {	
+		        while (entering[j]);
+		        while (number[j] != 0 && number[j] < number[i]);
+		  }
+		  Exit() {
+		     number[id] = 0;
+		  }
+  	       * works in a scheme with basically no processor support
+		        		 
