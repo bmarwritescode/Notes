@@ -820,9 +820,15 @@ Pointer Alignment
 		     for(j=1; j<=N; j++) {	
 		        while (entering[j]);
 		        while (number[j] != 0 && number[j] < number[i]);
+		     }
 		  }
 		  Exit() {
 		     number[id] = 0;
 		  }
   	       * works in a scheme with basically no processor support
 		        		 
+9/28 (Discussion)
+
+   Project 2:
+      Depending on how you handle children, some of the tests may use spawn
+         if you defined something in fork, probably do the same in spawn
