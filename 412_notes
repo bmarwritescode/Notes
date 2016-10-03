@@ -832,3 +832,18 @@ Pointer Alignment
    Project 2:
       Depending on how you handle children, some of the tests may use spawn
          if you defined something in fork, probably do the same in spawn
+
+10/3 (Discussion)
+
+   Project 2:
+      you do need to pop your arguments back off in Complete_Handler
+      Enabling Interrupts?
+         probably don't have to worry about it
+	 race condition on signal send?
+
+   Project 3:
+      per-cpu variables
+      per-cpu variable structure
+         cpu number, current thread it's running, run queue, GDT
+	 one for each cpu
+	 no paging, so some things might change
