@@ -847,3 +847,164 @@ Pointer Alignment
          cpu number, current thread it's running, run queue, GDT
 	 one for each cpu
 	 no paging, so some things might change
+
+10/4 (Lecture)
+
+   Project 2: Signals
+      - There is a sneaky test that involves invoking kill from within a signal handler
+         * reset flag in setup process, not in completion handler
+
+   Hardware lock intstructions: (lock the bus)
+      1) TSL - test and set lock
+         - tsl eax, [memory_location]
+	    * puts *memory_location into eax
+	    * puts 1 into memory_location
+	    * done ATOMICALLY 
+      2) xchg - exchange     
+         - same as tsl exceptnew value at memory_location is old value of eax
+	 - addditional feature useful for lock-free data structures, doesn't help locks
+
+	 spinlock from xchg:
+	    See: lowlevel.asm
+	       lock_function:
+	          mov eax, 1
+	       loop:
+	          xchg eax, [lock_variable]
+		  test eax
+		  jnz loop
+		  ret
+	       unlock_function:
+	          move eax, 0
+		  xchg eax, [lock_variable]
+		  ret
+
+   Producer/Consumer Bounded-Buffer problem:
+      producer creates stuff
+         - writes it to a buffer
+      consumer reads from buffer
+
+      * could be more than one consumer/producer
+
+      producer should write only when there is space in the buffer	
+         - should stop if buffer is full
+      consumer should read only when there is data available
+         - should stop if buffer is empty
+
+      works well with semaphore and condition variables, not so much with mutexes
+
+      Initial condition:
+         - empty buffer
+	    * consumer is blocked
+	    * empty_buffers = N
+	    * full_buffers = 0
+      
+      treat buffer as array of "something" (characters, integers, pages, who cares)
+
+      semaphores:
+         full_buffers
+	 empty_buffers      	
+
+      mutex:
+         m --> guards access to shared state
+
+      producer:
+         i = produce_item()
+	 wait(empty_buffers)
+	 wait(m)
+	 insert(i)
+	 signal(m)
+	 signal(full_buffers)
+	 
+      consumer:
+         wait(full_buffers)
+	 wait(m)
+	 i = get_buffer()
+	 signal(m)
+	 signal(empty_buffers)
+	 consume(i)
+
+   Condition Variables:
+      - often combined with monitors
+         * monitors are kind of like automatic mutex acquired on function entry/exit
+      - cv.wait()	  
+         * will ALWAYS wait (unlike a semaphore)
+	 * will "release" the mutex/monitor to wait
+	 * inherit mutex back when awakened 
+      - cv.signal()
+         * if there's no one waiting, signal does nothing
+	 * awakens at most one waiting thread
+      - cv.signal_all()
+         * awakens all (if any) waiting threads
+
+   Producer with c.v.:
+      i = produce_item()
+      m.wait(mutex)
+      while(count_full_buffers == N) 
+         cv.wait(not_full_condition, Mutex)
+      insert(i)
+      // could add if (count_full_buffers == 1), not necessary
+      cv.signal(not_empty)
+      m.signal(mutex)
+
+   * mutex = grand mutex
+   * you shouldn't need while loop, second level of ensuring you should have mutex
+
+   Dining Philosophers Problem:
+      - Three states:
+         * Talk
+	 * Hungry
+	 * Eat
+      - Goes through in order, then loops back to top
+      - we maintain an array of philosophers)
+      
+      test(philosopher_idx)
+         if (philosopher_idx -1) is not eating
+	    and (philosopher_idx + 1) is not eating	
+	    and (philosopher_idx) is hungry
+	 then	
+	    philosopher_idx = eating
+	 cv.signal(philosopher_idx)
+
+      pickup(philosopher_idx)
+         philosopher_idx = hungry
+	 while(philosopher_idx != eating)
+	    test(philosopher_idx)
+	    if(philosopher_idx == hungry) 
+	       cv.wait(philosopher_idx)
+         
+      putdown(philosopher_idx)
+         philosopher_idx = talk
+	 test(philosopher_idx - 1)
+	 test(philosopher_idx + 1)
+
+      * There is no "busy waiting" -> only one while loop that has a wait in it
+      * anything we're doing in here that looks/changes a shared variable is 
+        ALWAYS guarded by a mutex
+
+   Implementation of a Barrier:
+      - make all N threads wait until all reach the same point
+      
+      phase_1()
+      barrier()
+      phase_2()
+
+      Initial Condition:
+         N: # of threads
+	 S: semaphore associated with being blocked (value 0)
+	 mutex
+	 threads_in_barrier: 0
+	 
+	 Barrier()
+	    wait(mutex)
+	    threads_in_barrier += 1
+	    if (threads_in_barrier == N)
+	       signal(s)
+	    wait(mutex)
+	    wait(s)
+	    signal(s) 
+	    
+	    return
+
+	 * the wait/signal at the end is called a "turnstile"
+
+	 * if we signaled the mutex after the turnstile, we'd have problems
