@@ -1009,3 +1009,41 @@ Pointer Alignment
 
 	 * if we signaled the mutex after the turnstile, we'd have problems
 
+10/6 (Lecture)
+
+   Let's get over how to get the current threads:
+      - g_current_threads[cpu_id]
+      - we can get the current cpu_id using some things (APEC or something)
+      
+      1) find out cpu_id
+      2) then use it as an index
+      - What happens if you get swapped inbetween steps 1 and 2?
+      - CURRENT_THREAD must (currently) disable interrupts
+      - other ideas to avoid this?
+      - Think about these registers:
+         * cs
+	 * ds
+	 * ss
+	 * es
+	 * fs
+	 * gs
+      - array of these registers with base of GDT
+         * For each processor, we will have a unique array
+	 * first n-1 elements are all the same
+	 * last element points to a thing that tells you current thread
+	   - other stuff too
+	   - mov gs:offset -> eax
+	      * this will get the current thread
+	      * we can assume this instruction runs ATOMICALLY
+	        - no more disable interrupts
+
+   There are 2 types of registers:
+      - caller-save
+         * scratch registers - expected that the function will overwrite it
+	    - eax (return value will overwrite this)
+	    - edx (often overwritten by functions)
+	    - must be stashed before function called
+      - callee-save
+         * NOT expected that the function will overwrite it
+	    - ebx
+
