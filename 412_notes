@@ -1046,3 +1046,107 @@ Pointer Alignment
       - callee-save
          * NOT expected that the function will overwrite it
 	    - ebx
+
+10/13 (Lecture)
+
+   Exam 1: Answer
+      init:
+         count = 1
+	 cv =  new condition variable
+      p
+         count --
+	 if (count <0) cv.wait()
+      v
+         count ++
+	 cv.signal()
+
+   ACID Properties
+      - A: Atomicity
+         * no one can observe a partially completed transaction
+      - C: Concistency
+         * enforcement of the rules of transactions
+	 * NOT a property of the system, more of the application)
+      - I: Isolation
+         * each transaction operates as if it is the only transaction
+	 * each transaction appears as if run alone, sequentially
+	 * "serializability"
+	    - typically accomplished with two-phase locking
+	    - Two-Phase Locking
+	       * growing phase: acquire locks
+	       * shrinking phase: release the locks
+	       * avoids all race conditions
+	       * EX:
+	          Transaction 1: a = read(x)
+		  	      	 a++
+				 write(x,a)
+				 commit
+		  Transaction 2: b = read(x)
+		  	      	 b++
+				 write(y,b)
+				 commit
+		  Consider the following sequence:
+		     t1.read(x)
+		     t2.read(x) <- implies read lock acquired
+		     		   stops t1.write(x)
+		     (If you do the first 2, this is the only way out)
+		     t2.write(y)
+		     t2.commit
+		     t1.write(x)
+		     t1.commit
+		     
+		  Consider the following sequence:
+		     t1.read(x) <- acquire read lock
+		     t1.write(x) <- "promote" it to a write lock
+		     (If you do the first 2, this is the only way out)
+		     commit
+		     t2.read(x)
+		     t2.write(y)
+		     commit	
+      - D: Durability
+         * Once commited, the result is permanent
+	 * If you crashed right now, it would still be there
+	 * maintain a LOG
+	    - contains records w/ before/after values for each modified
+	      variable associated with a transaction id
+	    - contains records indicating whether a transaction committed
+	      or aborted
+	    - checkpoint record: indicates how much of the log has been
+	      processed
+	    - transaction committed when the record is on disk
+      - it is ok to ABORT
+         * deadlock
+	 * any other failure (disk failure, remote server crashes, etc.)
+	 * there may be consequences
+	    - rollback?
+
+   Deadlock:
+      - two processes prevents eachother from making progress
+      - 4 conditions of deadlock (when can it happen):
+         * Mutual Exclusion
+	 * Hold and Wait
+	    - acquire some subset of resources needed and wait for more
+	 * No Preemption
+	    - the resource I hold cannot be stolen from me
+	 * Circular Wait
+	    - cycle in the waits-for graph
+	       * process are nodes, directed edge is p1 waits for p2
+	    - basically p1 waits for p2, p2 waits fo p1
+      - DEADLOCK PREVENTION:
+         * breaking one of the conditions will break deadlock
+	    - Mutual Exclusion
+	       * can't really get rid of this
+	    - Hold and Wait
+	       * decide there is only resource
+	       * grab all locks at once
+	    - Preemption
+	       * can't really get rid of this either
+	    - Circular Wait
+	       * enforcing a total order on resources that can be acquired
+	          - i.e. acquire something before you want/(seemingly)need
+      - DEADLOCK AVOIDANCE:
+         * prevent unsafe states
+	    - knowledge of what a process might want
+	 * Banker's Algorithm (We will discuss this later)
+      - DEADLOCK DETECTION:
+         * identify a deadlocked process and kill it
+	    - which one? -> interesting question
