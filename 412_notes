@@ -1150,3 +1150,96 @@ Pointer Alignment
       - DEADLOCK DETECTION:
          * identify a deadlocked process and kill it
 	    - which one? -> interesting question
+
+10/25 (Lecture)
+
+   Banker's Algorithm (Deadlock Avoidance):
+      int Available[resource_id] --> resources of each type that are in the system
+      int Max[process_id][resource_id] --> resources potentially required by process
+      int Allocation[process_id][resource_id] --> what the OS has out
+      Need = Max - Allocation --> what each process could possibly need to finish
+
+   Is-Safe-State Subroutine
+      Simulated_Available = Available
+      foreach process_id = Finishable[process_id] = false
+   loop:
+      find pid s.t. !Finishable[pid] and Need[pid] <= Simulated_Available
+      if pid was found:
+         Simulated_Available += Allocation[pid]
+	 Finishable[pid] = true
+	 goto loop
+      else:
+         if all are finished: return true
+	 else: return false
+
+   One each request for a resource:
+      1. ensure that Request + Allocation[pid] <= Max[pid]
+         (else process lied to us)
+      2. ensure Request < Available
+      3. pretend allocated. if still Is-Safe-State: continue; else: wait
+
+   Deadlock Detection and Recovery:
+      - periodically, look for a cycle in the "waits-for" graph
+         * essentially look for processes taht don't make progress
+      - Constructing edges in the "waits for" graph
+         * Consider a process asked for a mutex
+	    - We know exactly WHO holds the mutex (Add the edge between the two)
+	 * Consider blocked on reading from a pipe
+	    - Add an edge to whoever holds the write end of that pipe
+	 * Waiting for a child to complete
+	    - edge from parent to child
+	 * Blocked write on a pipe
+	    - add an edge to whoever holds the read end of the pipe
+      - Recovery:
+         * kill a process in a cycle
+	    - reclaim its resources
+	    - should resolved deadlock
+	 * Which one do we kill?
+	    - separating policy (how it should be done) and mechanism (how you do it)
+	       * mechanism - develop waits for graph
+	       * policy - which do you kill
+	          - there are many choices (not necessarily a right one)
+
+   Memory:
+      - Protection:
+         * User processes cannot access memory from other user processes or the kernel
+	    - unless we want them to
+      - Address Space:
+         * set of addresses a process can play with
+	    - give each an illusion of its own individual address space
+	       * this space appears as large as possible 
+      - Logical Address:
+         * considered a virtual address
+	 * user process use/instruction reference this
+      - Linear Address:
+         * also considered a virtual address
+	 * after segmentation adds a base address
+      - Physical Address:
+         * after paging, replaces the page number
+      - Screwup fro Logical to Linear: int 13
+      - Screwup fro Linear to Physical: int 14
+      - Fragmentation:
+         * Internal - you allocate a block and pieces of that block go unused
+	 * External - parts between allocations are too small to use
+	 * paging only has INTERNAL
+	    - pages are uniform size
+	 * segmentation has a bit of INTERNAL (space for stack and heap to grow)
+	 * segmentation also has EXTERNAL
+      - Overlays:
+         * swap the entire process
+	 * essentially having code that rewrites itself
+	    - saves room
+      - Contiguous Allocation
+         * base and limit
+	    - we must know limit at load time
+	       * if it's to large, we get fragmentation
+	       * if it's to small, the program might fail
+	 * where should this allocation go? (policy NOT mechanism)
+	    - first-fit
+	    - best-fit
+	    - worst-fit
+	 * can contiguously-alocated process share memory?
+	    - maybe?
+	    - Yes (?)
+	       * using another segment register (es, fs)
+	          - compilers might no tlike this
