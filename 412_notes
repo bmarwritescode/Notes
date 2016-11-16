@@ -1151,6 +1151,27 @@ Pointer Alignment
          * identify a deadlocked process and kill it
 	    - which one? -> interesting question
 
+10/20 (Lecture)
+
+Project 4: Paging 1
+   - 4k is 12 bits
+      * identifier for a page will end in 12 (binary) zeroes
+      * We can use those 12 bits to keep track of permissions
+   - Consider Dirty/Access bits (they are imporant)
+      * Intel manual has helpful stuff
+   - You will need code to handle a page fault
+   - We are not expected to deal with fork
+   - page eviction scheme:
+      * Best scheme is called CLOCK
+         - We have a linked list of all the pages 
+	   (imagine they're in a circle)
+	 - We have a "clock hand" that asks "Has it been accessed?"
+	    * if A then A=0 else evict?
+	       - evict = if dirty then schedule write; advance hand
+	                 else definitely evict
+         - Clock hand doesn't move until we've run out of room
+	    * uh-oh, all the access bits are 1
+
 10/25 (Lecture)
 
    Banker's Algorithm (Deadlock Avoidance):
@@ -1244,6 +1265,95 @@ Pointer Alignment
 	       * using another segment register (es, fs)
 	          - compilers might no tlike this
 
+10/27 (Lecture)
+
+   Alternatives to hierarchical paging:
+      - hashed page table
+      - inverted page table
+         * track which linear address is associated with a given physical
+	   address (useful if physical is much smaller than virtual, 
+	   ie. for 64-bit address)
+	 * essentially goes physical -> linear
+	 * Hot pages: TLB
+	 * Pages in memory: "exhaustive" search is ok
+	 * Pages on disk: who cares, it'll take forever anyway
+
+   Project 4:
+      typedef struct {
+         uint_t present:1;
+	 uint_t flags:4;
+	 uint_t access:1;
+	 ...
+      } pte_t
+      - flags has VM_USER (2nd bit), VM_WRITE (1), VM_NOCACHE (3), 
+        VM_READ (0)
+      pte *p
+      ...
+      p -> flags = VM_USER | VM_WRITE
+      p -> flage &= ~VM_USER
+
+      - user linear address start: 0x30000000
+      - user logical stack pointer starts: 0x70000000
+      	   - to avoid APIC at 0xfec -> ox7ec
+      - page fault gives you LINEAR address, not logical
+
+   Demand Paging:
+      - expect page faults
+         * use these faults to allocate
+
+   Actors:
+      "pager" - brings pages in from disk
+      "swap daemon" - writes dirty pages out
+      - these exectute asynchronously
+      - maintain available clean pages
+
+   State of a physical page:
+      - unallocated, zeroed page (all bytes are zeroes)
+
+                           Dirty                 Not Dirty
+
+      referenced   	   
+      (accessed)
+
+      not referenced	   
+
+      ^ Thats supposed to be a table. Below represents transitions in it
+
+      (not referenced, not dirty) goes to (referenced, not dirty) on read
+      (not referenced, not dirty) goes to (referenced, dirty) on write
+      (not referenced, not dirty) cant go to (not referenced, not dirty) 
+      (referenced, not dirty) goes to (not referenced, not dirty) 
+         on OS (clock)
+      (referenced, dirty) goes to (not referenced, dirty) on OS
+      (not referenced, not dirty) goes to (referenced, not dirty) on r/w
+      (referenced, dirty) goes to (referenced, not dirty) on 
+         OS (clean/write to disk)
+      (not referenced, dirty) goes to (not referenced, not dirty) on 
+         OS (clean/write to disk)
+
+   How to replace pages?:
+      - FIFO: evict the oldest
+      - OPT: look into the future (difficult/impossible to do)
+         * provides best-case/lower-bound
+      - LRU: Least-Recently Used
+         * we only have access bits, makes this difficult
+	 * we can try to finnegle ordering to mimic this
+      - Clock: FIFO + second chance
+      - LFU/MFU: kick out least/most frequently used
+      - Working Set: establish a time over which you keep only things used
+                     in the time period
+      
+11/1 (Lecture)
+
+   Page Replacement:
+      - Belady's Anomaly
+         * Some replacement algorithms using larger memories will not hold
+	   a superset of what they hold withsmaller memories
+
+   Project 4a:
+      - Kernel_Page_Dir()
+
+
 11/3 (Lecture)
 
    Project 4b:
@@ -1253,3 +1363,228 @@ Pointer Alignment
 	 * map 0 as NULL for user
 	 * memcpy Kernel Page Directory, then place appropriate new pages
       - When adding a page to the user space, make sure it's zeroed
+
+11/8 (Lecture)
+
+   Page out:
+      - lock it / claim it
+      - clean the page
+         * write to paging
+      - Zero the page OR REad the page off disk
+      - Set it in the new pte
+      
+   Read and Write REQUIRE interrupts to be enabled
+      - Try to keep "in balance"
+      - Other stuff can happen while waiting for the disk
+
+   Working-Set Model:
+      - establish a time parameter t
+      - anything accessed less than t seconds ago is in the "working set"
+      - anything else isn't
+
+   Where do paged-out pages go?
+      - pagefile in disk
+         * geekos: contiguous file
+	 * windows, mac osx use this although not contiguous
+      - Swap Partition:
+         * linux: necessarily contiguous fraction of disk
+
+   How much space do we have to page-out to?
+      - Swap partition is constant size
+         * What should we choose?
+	    - We want more if we have too little memory
+	    - However, we don't want to waste space AND
+	      takes too long (fetching from disk is long)
+	         * might rather kill the memory leak and then force
+		   Garbage Collection	      
+      - windows and mac osx might be able to expand on the fly?
+   
+   Memory Allocation in Kernel
+      - large contiguous regions
+      - efficient, because they are pinned
+         * i.e. not pageable, devices are expecting physical addresses
+      - may or may not be able to wait
+      - aligned
+
+   Buddy Allocator
+      - start with one large contiguous block (1 MB)
+      - maintain a table of free lists for different amounts of memory
+          * amounts are powers of 2 (i.e. 32 bits, ..., 256K, 512K, 1M)
+      - Free List
+         * set of to-be-allocated blocks
+      - we can use the bytes in the allocations to store next pointers
+         * more efficient use of space
+      - not great if allocations aren't powers of two in size
+
+   Slab allocator
+      - allocate a page
+      - within that page, allocate things of the same type (i.e. kthread)
+      - if we run out of room, just allocate another page
+      - slab header keeps track of which entries are free
+
+11/10 (Lecture)
+
+   File - named array of bytes (plus metadata)
+   Filesystem - provide file from an array of 512-byte blocks
+
+   blocks store the file contents
+      - i.e. syscall.c
+         * imagine it takes up 3 blocks (2 fully)
+	 * size of 1030 bytes (accounts for partial block)
+
+   what must we store?
+      - name (info to retrieve contents)
+      - information about the filesystem
+         * number of blocks
+	 * which ones are available
+	 * where are the special structures
+
+   Hierarchical Directory Structure
+      - try to use the "file" for everything
+         * even free blocks set might be a file (allows r/w etc.)
+      - a directory is just a specially formatted file
+
+   Unix Directory File Format
+      - dirent ("directory entry")
+         * | Entry Length | Inode Number | Filename |
+	 * then repeat this for every file in the directory
+	 * inode number - unique ID for the file which is an array index
+	   to a metadata structure called an inode
+      - to find a particular file
+         * determine the expected length
+	 * if entry length matches, then strcmp filename 
+
+   "hard link" - two names, same inode
+      - consider /. vs. /..
+   "soft link" - special file whose contents are a filename
+
+   spinning platter (think of vinyl records)
+      - moving the head
+         * move and settle
+	 * depends on distance
+
+   avoid seeks
+      - files should be continuous
+   want seeks to be short
+      - files that share a directory should be nearby
+      - metadata should be close
+
+   moore's?
+
+   Disk operations in a queue:
+      - while processing one disk request, good chance there will be more
+      - reorder the queue to reduce number and distance of the seeks
+         * use "elevator" approach
+	    - elevator goes up, picking up anyone who wants to go up
+	    - elevator goes down, picking up anyone who wants to go down
+	    
+   Superblock
+      - all information about the filesystem
+      - replicas in case file system is corrupted
+      
+   We want files of variable length
+   We want to be able to append files
+
+   linked allocation - essentially a linked list using bytes in the block
+   	  	       to keep track of the next block
+
+   FAT Filesystem:
+      - similar to linked allocation, but all of the next block pointers
+      	are stored in an array (File Allocation Table)
+      - each file name is bound to the first block number
+         * this means this offset is used as the index into the FAT
+      - We want to store the FAT in memory
+
+   indexed allocation:
+      - record associated with each file (proto inode)
+         * contains a list of the blocks inside the record
+	 * forces a static allocation of max size for a file
+
+   multi-level indexed allocation:   
+      - to handle a few large files (but many small files):
+      - store a block of block numbers
+         * this is the "indirect block"
+	 * allows for last block in record array to store a block of blocks
+	   OR just a block depending on how big the file is
+	 * you can have a doubly-indirect block...
+
+11/15 (Lecture)
+
+   Buffer Cache
+      - every disk op is time-consuming
+      - every flash write consumes lifespan
+      - we want to avoid unnecessary writes
+         * rewriting of a block
+	 * updates to inodes (metadata)
+	 * updates to directories
+      
+         int fd = open(filename, O_WRITE, 0666);
+	 for (i = 0; i < 8; i++) {
+	    write(fd, "boo!\n", 5);
+	 }
+	 close(fd); // We might flush here
+
+      - Get_Block function
+         * read off of disk if needed
+	 * lock the block: (if it's ours)
+	 * can wait for:
+	    1) need to read off disk
+	    2) another thread has the block
+      - Mark_Dirty function
+         * We changed the block -> will need to be "cleaned"
+	    - done by writing to disk
+      - Release function
+         * unlock the buffer
+      - Replacement Policy
+         * Geekos: LRU
+	 * clean pages to evict
+      - Operation called "sync"
+         * cleans all dirty buffers
+
+   Early Unix Filesystem:
+      - Directores -> concatenated dirents
+         * dirent - length, inode number, length
+	    - this is BAD for large directories
+      - inodes - multi-level indexed allocation
+         * fixed size array
+	    - limit # of files or waste space
+         * direct blocks (in the inode)
+	 * indirect blocks (stored in the c block of block numbers)
+	 * doubly-indirect blocks
+	 * on outer-most cylinder
+	    - this is BAD (inode far away from file data it points to)
+	       * creates long seeks from separation of data from inode
+
+   Fast File System:
+      - cylinder group
+         * partition space into cylinder groups
+	 * put blocks and inodes in each cylinder group
+	    - spatial locality of data with inode (fewer seeks)
+      - fragment
+         * use one block to store the end of several files
+
+   EXT2:
+      - 12 direct blocks
+      - triply-indirect
+      - preallocation
+         * when appending to a file, claim the next few blocks before
+	   they are needed
+	    - avoids interleaving with other files
+	    - promotes keeping files contiguous
+      - block group (cylinder group) descriptor
+         * keeps track of free inodes bitmap, free blocks bitmap
+	 * superblock keeps track of block groups
+
+   NTFS:
+      - Master File Table
+         * "oversized inodes" -> they also store data?
+	 * directory is a B+ tree (only leaves, no internal nodes)
+	    - looking through a block is "free" 
+	    - fetching a block is NOT "free"
+      - Block references are in "extents"
+         * RLE (run length encoding) compressed block lists
+	    - RLE means you keep track of how many consecutive blocks a 
+	      given file takes up
+	    - list of <start, length> 
+	 * extents can also store extents
+	    - we can store arbitrarily large files 
