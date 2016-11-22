@@ -1588,3 +1588,28 @@ Project 4: Paging 1
 	    - list of <start, length> 
 	 * extents can also store extents
 	    - we can store arbitrarily large files 
+
+11/22 (Lecture)
+
+   Project 5:
+      - want qemu to act as if .img is a disk
+      - addressable space made available by qemu is less than file size
+      - superblock defines the filesystem size
+         * contains block size, # blocks, # inodes, where inodes start
+      - Filesystem block:
+         * individually addressable file system units
+	 * i.e. block numbers in inodes
+      - Device "block device" block
+         * 512 bytes
+	 * SECTOR_SIZE
+      - create buffer cache with FS block size
+         * buffer cache takes care of the for loop
+      - let's say you want an inode, say inode 1
+         * simultaneously:
+	    a) avoid deadlock issue
+	       - buffer cache comes with a lock on it
+	       - need to be careful to give it back
+	    b) avoid inconsistent data
+      - you can hold one inode buffer entry at a time
+         * keep in mind this doesn't include data blocks
+      - Dirents CAN span blocks	
