@@ -1613,3 +1613,38 @@ Project 4: Paging 1
       - you can hold one inode buffer entry at a time
          * keep in mind this doesn't include data blocks
       - Dirents CAN span blocks	
+
+11/29 (Lecture)
+
+   Log-Structured File System:
+      - Disk
+         * bit density increases
+     	 * rotation spped a bit faster
+	 * seek time NOT decreasing
+	 * starts to look like tape (not good)
+      - Memory
+         * getting so big that you never have to read from disk
+	 * almost all traffic is writes to disk
+	    - optimize the common case (in this case writes)
+	       * don't need to arragne the data for reads
+	          - doesn't need to be sequential
+         * we want persistance at high throughput
+      - Treat the disk like a log
+         * No data has a home
+	 * Every time we write data, the file will get a new block
+	   in the log
+	 * Update with a new indirect block and inode
+	 * data in the log at a new location
+	 * updated inodes in the log
+	 * the current version of any inode can be anywhere
+	    - requires an inode map to store its location
+	       * inode map stored in a file called the "ifile"
+	       * an array of segment numbers for each inode
+	          - optionally also a time (access time)
+		  - segments are 1 MB
+		  - log will essentially be a linked list
+      - Cleaner
+         * take partially-filled segments
+	    - might have obsolete data or unfilled in the first place
+	    - combine them, write back out
+	       * similar to generational garbage collection
