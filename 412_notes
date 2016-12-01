@@ -1648,3 +1648,28 @@ Project 4: Paging 1
 	    - might have obsolete data or unfilled in the first place
 	    - combine them, write back out
 	       * similar to generational garbage collection
+
+12/1 (Lecture)
+
+   add to a file:
+      - size in inode
+      - set of blocks
+      - data blocks
+      - altered free blocks bitmap
+
+   on boot:
+      - traverse all structures!
+
+   Journaling File System:
+      - Benefit:
+         * we can make burst writes contiguous (no seeks)
+	 * goal of write: persistence
+      - Rule:
+         * journal always contains metadata
+	 * some implementations have the data itself
+      - If not data:
+         * do we ensure that the data is on disk FIRST
+      - Journal contains operations
+         * before state - allows undo
+	 * after state - allows redo
+	 * need to know whether the operation committed
