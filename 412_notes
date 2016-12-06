@@ -1673,3 +1673,117 @@ Project 4: Paging 1
          * before state - allows undo
 	 * after state - allows redo
 	 * need to know whether the operation committed
+
+12/6 (Lecture)
+
+   Project 5c:
+      KASSERT0(block_i_think_has_data >= start_of_data_on_disk,
+               "so I don't whack the inodes")
+
+   I/O (disk) scheduling:
+      - many processes, one disk
+      - one queue of disk requests
+         * task: manage the queue
+	 * goal: throughput and avoid starvation
+	 * advantage: we have lots of time
+	    - it takes a long time to fetch data form disk
+	    - plenty of time to organize queue of disk requests
+	    - this is different than CPU scheduling because of this time
+	 * note: individual processes have localized accesses
+      - Schemes for managing queue:
+         * FIFO (First In First Out)
+	    - easy but not very good
+	 * Greedy schemes (SSTF/SATF/SPTF)
+	    - at every step, find the block that requires minimum arm movement 
+	      to access
+	    - solves some problems of FIFO (interleaved requests on opposite sides 
+	      of disk
+	    - starvation could be a problem
+	       * no guarentee we will leave a commonly accessed area of disk
+	 * Scan/Elevator/Look
+	    - sort the entire queue
+	    - go left to right along disk, getting requests along the way
+	    - elevator analogy: get everyone going up in order, going down in reverse
+	 * C-Scan (unidirectional elevator)
+	    - only serves requests going "up" and not "down"
+	    - in other words, only serves requests going one direction
+	    - throughput advantage of Scan w/ slightly more fairness
+	    - has a bit of wasted movement
+	 * Deadline:
+	    - each request -> two queues
+	       * C-Scan queue
+	       * FIFO queue (of sorts)
+	          - 0.5 seconds for read
+		     * attempted upper bound on request latency for read
+		  - 5 seconds for write
+		     * attempted upper bound on request latency for write
+		  - If our request has waited either of the above times depending
+		    on read/write, we automatically jump to that place on disk and 
+		    serve request
+	       * You can still get starvation with C-Scan, which is why this exists
+	          - constant writes to the same location could cause long waits
+	       * was in Linux for a long time
+         * Acticipatory Scheduler:
+	    - after servicing a request, wait at that location
+	    - wait until the application ask for the next (adjacent?) request
+	    - this offers good performance improvement by causing delay!
+	    - depends on close memory accesses
+	    - could combine this with some other schemes (FIFO, Greedy, etc.)
+         * CFQ
+	    - many queues --> many processes
+	       * round-robin the queues
+	    - extreme fairness, gives all processes "equal" access to disk
+	    - good for avoiding process starvation
+	       * hurts processes with lots of memory accesses
+
+   RAID:
+      - Have more than one disk
+      - Use more than one disk to solve problems of single disk
+      - Levels: 0, 1, and 5 (There are others but they're not really used)
+         * Level 0:
+	    - Striping
+	       * combine two disks into one volume, alternating
+	          - put odd blocks on disk 0, even on disk 1 (for example)
+ 	    - This makes disk accesses appear faster
+	    - Great idea for speed
+	    - Terrible for reliability
+	       * higher probability of data loss, no redundancy!
+	 * Level 1:
+	    - mirror: full copy on each disk
+	    - writes require multiple writes to each disk
+	    - small improvement potential on speed for reads
+	    - mostly done for reliability purposes
+	 * Level 2:
+	    - error correcting codes
+	       * recognize and fix corrupted bits
+	    - one example of error correction scheme: 2D parity
+	          1101|1 
+		  1011|1
+		  0110|0
+		  1001|0
+		  ____|
+		  1001 0
+	       * we can use this to identify 1-bit errors
+	          - we can tell error is somewhere in column x, row y
+	       * 2-bit failure would screw a bunch of stuff up
+	          - no solution using this scheme
+	       * if we lost a parity bit, we should be fine
+	       * 3-bit errors could confuse again
+	       * 4-bit errors might not even be detectable
+	       * this is not frequently used
+         * Level 3:
+	    - disks know when they're wrong
+	    - solves much of the difficulty of Level 2
+	    - we now just need parity (essentially 1D vs. 2D parity)
+	 * Level 4:
+	    - block-level parity
+	    - allocate one disk as "parity" disk
+	    - similar to stripoing scheme
+	    - On rewrite, you must both write the block and the associated parity disk
+	      entry
+	         * lots of write traffic to the parity disk
+	 * Level 5:
+	    - same as Level 4, but intersperses parity bits in with data
+	       * this reduces high write load on parity disk
+	    - specifically the parity bits should be rotated to avoid high write
+	      traffic on one disk
