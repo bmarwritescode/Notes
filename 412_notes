@@ -1787,3 +1787,70 @@ Project 4: Paging 1
 	       * this reduces high write load on parity disk
 	    - specifically the parity bits should be rotated to avoid high write
 	      traffic on one disk
+
+12/8 (Lecture)
+
+   NFS (Network File System):
+      - RPC (Remote Procedure Call)
+         * Interface for interaction with procedures/functions not
+	   messages
+      - XDR (Extended Data Representation)
+         * intermediate data representation (i.e. little vs. big endian)
+	 * everyone agrees on a single format for transmission
+      - stateless
+         * server does not know/care about "open" files or file positions
+	 * client keeps track of file position, etc.
+	 * clients can reboot (doesn't cause confusion)
+      - authentication
+         * whitelist of IP addresses of valid clients
+	 * trusting the user-id reported by that client
+	 * THIS IS NOT GOOD
+	 * UID = 0 represents the super user
+	 * root-squash: uid zero requests -> uid "nobody" requests
+	    - optional configuration of the server
+	    - prevents attempted root access
+
+   How does a server know that you are you?
+      - user/password
+      - key pair
+         * both of the top two lead to a user id
+	 * user id is a numeric identifier for a user, 
+	   associated with each process
+	    - mapping of username to user id (and passwords) kept 
+	      in /etc/passwd
+	    - passwords later moved into /etc/shadow
+	       * readable only by root (UID 0)
+	    - shouldn't store passwords plain text
+	    - salted hash of the passwords
+	       * salted -> create a random value
+	       * hash the password with the salt (SHA)
+	       * hash password AND salt, one is not enough (ideally)
+      - it doesn't
+      - cookie/Openauth
+      - Tenex password hack
+         * plaintext passwords
+	 * from a user account, break the system (get root)
+	 * check_password(user, password)
+	 * figure it out letter by letter
+	    - do this by timing
+	    - first letter of password on last byte of page
+	    - make sure rest of password on paged out page
+      - keypair
+         - public key
+            * do not care who has it
+         - private key
+            * kept secret
+         - signature (message)
+            * hash(message) encrypted with private key
+         - certificate
+            * message = public key and who owns that key
+	    * signature(message)
+	    * assumes that the issuer of the cetificate has
+	      jurisdiction over good keys to use
+         - server believes that a particular public key is associated with 
+           a user
+	 - must prevent replay
+	    * authentication messages must be "fresh"
+	    * server comes up with random number, asks for encrypted
+	       - random "nonce"
+	       - Kerberos scheme (synchronized clocks)
