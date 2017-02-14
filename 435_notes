@@ -9,3 +9,24 @@
       Repeatability
       Survivability
       
+2/14
+
+   Why do we care? -> COST
+
+   Scrimmage 2:
+      - models are "predictive simulation"
+      - consider timing, weight, maybe other data
+      - supported platforms?
+
+   Why do products fail?
+      1) incomplete requirements
+      2) lack of resources
+      3) unrealistic goals
+      4) changing specs
+      5) lack of planning
+
+   Generic Process:
+      1) Discover
+      2) Analyze
+      3) Express
+      (Repeat)
