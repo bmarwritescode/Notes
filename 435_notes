@@ -39,3 +39,14 @@
 
    Verifiable(Testable)
       - can be verified in finite time
+
+3/28
+
+	Technical Design:
+		- Modular Structure (functional or data units having well-defined I/O and properties)
+		- Rationale for how this composition meets requirements (solves the problem)
+		- Plan for construction	
+		- Essential algorithms (as needed)	
+
+	Prototyping:
+		- A Disciplined experimental activity intended to reveal insights before design decisions are finalized
